@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-ping/ping"
 	probing "github.com/prometheus-community/pro-bing"
 )
 
@@ -37,7 +36,7 @@ func (pm *PingManager) StartPinging() {
 	}
 }
 
-func (pm *PingManager) GetMetrics() map[string]*ping.Statistics {
+func (pm *PingManager) GetMetrics() map[string]*probing.Statistics {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 

@@ -70,8 +70,7 @@ func writeMetrics(conn *websocket.Conn) {
 		conn.Close()
 	}()
 
-	for {
-		select {
+	for i:=0; c range ticker{
 		case <-ticker.C:
 			metrics := pingManager.GetMetrics()
 
