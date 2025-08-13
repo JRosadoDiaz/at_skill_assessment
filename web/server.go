@@ -1,18 +1,26 @@
 package web
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/JRosadoDiaz/AT_Skill_Assessment/api"
 	"github.com/JRosadoDiaz/AT_Skill_Assessment/internal/pinger"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/gorilla/websocket"
 )
 
 var pingManager *pinger.PingManager
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
 
 func StartServer(port string, pm *pinger.PingManager) {
 	pingManager = pm
@@ -20,45 +28,63 @@ func StartServer(port string, pm *pinger.PingManager) {
 	router := chi.NewRouter() // Returns a new Mux object that implements the Router interface
 	router.Use(middleware.Logger)
 
-	router.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		tmpl, err := template.ParseFiles("./web/templates/index.html")
-		if err != nil {
-			api.InternalErrorHandler(w)
-			log.Printf("Error loading template: %v", err)
-			return
-		}
+	router.Get("/", handleHome)
 
-		err = tmpl.Execute(w, nil)
-		if err != nil {
-			api.InternalErrorHandler(w)
-			log.Printf("Error rendering template: %v", err)
-			return
-		}
-	})
+	// router.Get("/ws", socketHandler)
 
 	fmt.Printf("Server is now listening at http://localhost:%v \n", port)
-	err := http.ListenAndServe(":"+port, router)
+	log.Fatal(http.ListenAndServe(":"+port, router))
+}
+
+func socketHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("Websocket connection recieved")
+	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		fmt.Println("failed to listen to server", err)
-		log.Printf("Failed to listen to server: %v", err)
+		api.InternalErrorHandler(w)
+		log.Printf("Websocket upgrade failed:", err)
+	}
+
+	go writeMetrics(conn)
+}
+
+func handleHome(w http.ResponseWriter, r *http.Request) {
+	tmpl, err := template.ParseFiles("./web/templates/index.html")
+	if err != nil {
+		api.InternalErrorHandler(w)
+		log.Printf("Error loading template: %v", err)
+		return
+	}
+
+	err = tmpl.Execute(w, nil)
+	if err != nil {
+		api.InternalErrorHandler(w)
+		log.Printf("Error rendering template: %v", err)
+		return
 	}
 }
 
-// // Mainpage
-// func serveHome() {
-// 	if r.URL.Path != "/" {
-// 		http.NotFound(w, r)
-// 		return
-// 	}
+func writeMetrics(conn *websocket.Conn) {
+	ticker := time.NewTicker(pingManager.Interval)
+	defer func() {
+		ticker.Stop()
+		conn.Close()
+	}()
 
-// }
+	for {
+		select {
+		case <-ticker.C:
+			metrics := pingManager.GetMetrics()
 
-// func handler(r *chi.Mux, pinger *pinger.PingManager) { // Mux -> Multiplexer
-// 	r.Route("/metrics", func(router chi.Router) {
-// 		router.Get("/", pinger.GetMetrics)
-// 	})
-// }
+			data, err := json.Marshal(metrics)
+			if err != nil {
+				log.Println("JSON encoding error:", err)
+				continue
+			}
 
-func basicHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Hello, world!"))
+			if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
+				log.Println("WebSocket write error, closing connection:", err)
+				return
+			}
+		}
+	}
 }

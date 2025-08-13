@@ -8,10 +8,10 @@ Placing this in an internal directory signals that it's meant for use only by th
 
 import (
 	"fmt"
-	"net/http"
 	"sync"
 	"time"
 
+	"github.com/go-ping/ping"
 	probing "github.com/prometheus-community/pro-bing"
 )
 
@@ -23,7 +23,7 @@ type PingManager struct {
 	Interval time.Duration
 }
 
-func NewPingerManager(hosts []string, interval time.Duration) *PingManager {
+func NewPingerManager(hosts []string, interval time.Duration) *PingManager { // Constructor for PingManager
 	return &PingManager{
 		Hosts:    hosts,
 		Data:     make(map[string]*probing.Statistics),
@@ -37,7 +37,7 @@ func (pm *PingManager) StartPinging() {
 	}
 }
 
-func (pm *PingManager) GetMetrics(w http.ResponseWriter, r *http.Request) map[string]*probing.Statistics {
+func (pm *PingManager) GetMetrics() map[string]*ping.Statistics {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
@@ -46,12 +46,6 @@ func (pm *PingManager) GetMetrics(w http.ResponseWriter, r *http.Request) map[st
 		metricsCopy[k] = v
 	}
 
-	// w.Header().Set("Content-Type", "application/json")
-	// err = json.NewDecoder(w).Encode(response)
-	// if err != nil {
-	// 	api.InternalErrorHandler(w)
-	// 	return
-	// }
 	return metricsCopy
 }
 
@@ -62,12 +56,15 @@ func (pm *PingManager) pingHost(host string) {
 		return
 	}
 
-	fmt.Println("Starting pinger")
-
 	// Configure what the pinger will do
 	pinger.Interval = pm.Interval
 	pinger.Timeout = time.Second * 1
 	pinger.Count = 3
+
+	// Print status whenever ping is recieved
+	pinger.OnRecv = func(pkt *probing.Packet) {
+		fmt.Printf("Recieved ping replay from %s: bytes=%d time=%v ttl=%d\n", pkt.IPAddr, pkt.Nbytes, pkt.Rtt, pkt.TTL)
+	}
 
 	// Records what happens when it finishes a ping
 	pinger.OnFinish = func(stats *probing.Statistics) {

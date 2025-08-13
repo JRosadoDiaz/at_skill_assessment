@@ -41,11 +41,10 @@ func main() {
 
 	// Generate ping manager
 	var pingStruct = pinger.NewPingerManager(hosts, interval)
+	pingStruct.StartPinging()
 
 	// Start web server
 	web.StartServer(port, pingStruct)
 
-	fmt.Println("Starting pinger")
-	pingStruct.StartPinging()
-	select {} // Will keep the project running indefinitely
+	// select {} // Will keep the project running indefinitely
 }
