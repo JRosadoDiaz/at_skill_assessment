@@ -20,7 +20,7 @@ var pingManager *pinger.PingManager
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool { // Add this for security
+	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
 }
@@ -41,7 +41,7 @@ func StartServer(port string, pm *pinger.PingManager) {
 
 func socketHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Websocket connection recieved")
-	conn, err := upgrader.Upgrade(w, r, nil)
+	conn, err := upgrader.Upgrade(w, r, nil) // Upgrades http request to a websocket for back and forth communication
 	if err != nil {
 		log.Printf("Websocket upgrade failed: %v", err)
 	}

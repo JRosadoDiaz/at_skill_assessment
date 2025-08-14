@@ -26,10 +26,10 @@ var count int
 
 func main() {
 	// Grabbing flags
-	flag.StringVar(&hostsStr, "hosts", "www.google.com,www.reddit.com", "comma-seperated list of hosts to ping")
-	flag.StringVar(&port, "port", "8000", "Port number")
+	flag.StringVar(&hostsStr, "hosts", "www.google.com,reddit.com", "comma-seperated list of hosts to ping")
+	flag.StringVar(&port, "port", "8000", "Port number for web server")
 	flag.DurationVar(&interval, "interval", time.Second*5, "The interval between pings")
-	flag.IntVar(&count, "count", 0, "Number of times the host will be pinged")
+	flag.IntVar(&count, "count", 0, "Number of times the host will be pinged, 0 is ping indefinitely")
 	flag.Parse()
 
 	if hostsStr == "" {

@@ -28,6 +28,7 @@ func NewPingerManager(hosts []string, interval time.Duration, count int) *PingMa
 		Hosts:    hosts,
 		Data:     make(map[string]*probing.Statistics),
 		Interval: interval,
+		Count:    count,
 	}
 }
 
@@ -52,29 +53,34 @@ func (pm *PingManager) GetMetrics() map[string]*probing.Statistics {
 func (pm *PingManager) pingHost(host string) {
 	pinger, err := probing.NewPinger(host)
 	if err != nil {
-		fmt.Printf("Error creating pinger for %s: %v\n", host, err)
-		return
+		panic(err)
 	}
 
-	// Configure what the pinger will do
+	// Configure what the pinger can do when active
 	pinger.Interval = pm.Interval
-	pinger.Timeout = time.Second * 30
 	pinger.Count = pm.Count
+	pinger.SetPrivileged(true)
+
+	// Print which host is being pinged
+	pinger.OnSend = func(p *probing.Packet) {
+		fmt.Printf("Sending packet to %v...\n", host)
+	}
 
 	// Print status whenever ping is recieved
 	pinger.OnRecv = func(pkt *probing.Packet) {
 		fmt.Printf("Recieved ping replay from %s: bytes=%d time=%v ttl=%d\n", pkt.IPAddr, pkt.Nbytes, pkt.Rtt, pkt.TTL)
 	}
 
-	// Records what happens when it finishes a ping
+	// Records what happens when a ping finishes
 	pinger.OnFinish = func(stats *probing.Statistics) {
-		fmt.Println("Done")
 		pm.mu.Lock()
 		pm.Data[host] = stats
 		pm.mu.Unlock()
-		// fmt.Println(pm.Data[host].PacketsRecv)
 	}
 
 	fmt.Printf("Pinging %s with an interval of %v\n", host, pm.Interval)
-	pinger.Run()
+	err = pinger.Run()
+	if err != nil {
+		panic(err)
+	}
 }
