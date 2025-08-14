@@ -20,6 +20,9 @@ var pingManager *pinger.PingManager
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool { // Add this for security
+		return true
+	},
 }
 
 func StartServer(port string, pm *pinger.PingManager) {
@@ -40,8 +43,7 @@ func socketHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Websocket connection recieved")
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		api.InternalErrorHandler(w)
-		log.Printf("Websocket upgrade failed:", err)
+		log.Printf("Websocket upgrade failed: %v", err)
 	}
 
 	go func(conn *websocket.Conn) {
@@ -75,6 +77,7 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 	}
 	err = tmpl.Execute(w, nil)
 	if err != nil {
+		api.InternalErrorHandler(w)
 		log.Printf("Rendering the template has failed: %v", err)
 	}
 }

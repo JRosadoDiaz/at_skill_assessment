@@ -26,10 +26,10 @@ var count int
 
 func main() {
 	// Grabbing flags
-	flag.StringVar(&hostsStr, "hosts", "", "comma-seperated list of hosts to ping")
+	flag.StringVar(&hostsStr, "hosts", "www.google.com,www.reddit.com", "comma-seperated list of hosts to ping")
 	flag.StringVar(&port, "port", "8000", "Port number")
 	flag.DurationVar(&interval, "interval", time.Second*5, "The interval between pings")
-	flag.IntVar(&count, "count", 5, "Number of times the host will be pinged")
+	flag.IntVar(&count, "count", 0, "Number of times the host will be pinged")
 	flag.Parse()
 
 	if hostsStr == "" {
@@ -40,11 +40,9 @@ func main() {
 	hosts := strings.Split(hostsStr, ",")
 
 	// Generate ping manager
-	var pingStruct = pinger.NewPingerManager(hosts, interval)
+	var pingStruct = pinger.NewPingerManager(hosts, interval, count)
 	pingStruct.StartPinging()
 
 	// Start web server
 	web.StartServer(port, pingStruct)
-
-	// select {} // Will keep the project running indefinitely
 }

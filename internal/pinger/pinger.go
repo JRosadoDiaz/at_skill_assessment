@@ -20,9 +20,10 @@ type PingManager struct {
 	Hosts    []string
 	Data     map[string]*probing.Statistics
 	Interval time.Duration
+	Count    int
 }
 
-func NewPingerManager(hosts []string, interval time.Duration) *PingManager { // Constructor for PingManager
+func NewPingerManager(hosts []string, interval time.Duration, count int) *PingManager { // Constructor for PingManager
 	return &PingManager{
 		Hosts:    hosts,
 		Data:     make(map[string]*probing.Statistics),
@@ -57,8 +58,8 @@ func (pm *PingManager) pingHost(host string) {
 
 	// Configure what the pinger will do
 	pinger.Interval = pm.Interval
-	pinger.Timeout = time.Second * 1
-	pinger.Count = 3
+	pinger.Timeout = time.Second * 30
+	pinger.Count = pm.Count
 
 	// Print status whenever ping is recieved
 	pinger.OnRecv = func(pkt *probing.Packet) {
@@ -67,9 +68,11 @@ func (pm *PingManager) pingHost(host string) {
 
 	// Records what happens when it finishes a ping
 	pinger.OnFinish = func(stats *probing.Statistics) {
+		fmt.Println("Done")
 		pm.mu.Lock()
 		pm.Data[host] = stats
 		pm.mu.Unlock()
+		// fmt.Println(pm.Data[host].PacketsRecv)
 	}
 
 	fmt.Printf("Pinging %s with an interval of %v\n", host, pm.Interval)
