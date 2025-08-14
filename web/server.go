@@ -30,7 +30,7 @@ func StartServer(port string, pm *pinger.PingManager) {
 
 	router.Get("/", handleHome)
 
-	// router.Get("/ws", socketHandler)
+	router.Get("/ws", socketHandler)
 
 	fmt.Printf("Server is now listening at http://localhost:%v \n", port)
 	log.Fatal(http.ListenAndServe(":"+port, router))
@@ -44,7 +44,26 @@ func socketHandler(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Websocket upgrade failed:", err)
 	}
 
-	go writeMetrics(conn)
+	go func(conn *websocket.Conn) {
+		ticker := time.NewTicker(pingManager.Interval)
+		defer func() {
+			ticker.Stop()
+			conn.Close()
+		}()
+
+		for range ticker.C {
+			metrics := pingManager.GetMetrics()
+			data, err := json.Marshal(metrics)
+			if err != nil {
+				log.Println("JSON encoding error:", err)
+				continue
+			}
+			if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
+				log.Println("Websocket write error, closing connection:", err)
+				return
+			}
+		}
+	}(conn)
 }
 
 func handleHome(w http.ResponseWriter, r *http.Request) {
@@ -54,36 +73,8 @@ func handleHome(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error loading template: %v", err)
 		return
 	}
-
 	err = tmpl.Execute(w, nil)
 	if err != nil {
-		api.InternalErrorHandler(w)
-		log.Printf("Error rendering template: %v", err)
-		return
-	}
-}
-
-func writeMetrics(conn *websocket.Conn) {
-	ticker := time.NewTicker(pingManager.Interval)
-	defer func() {
-		ticker.Stop()
-		conn.Close()
-	}()
-
-	for i:=0; c range ticker{
-		case <-ticker.C:
-			metrics := pingManager.GetMetrics()
-
-			data, err := json.Marshal(metrics)
-			if err != nil {
-				log.Println("JSON encoding error:", err)
-				continue
-			}
-
-			if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
-				log.Println("WebSocket write error, closing connection:", err)
-				return
-			}
-		}
+		log.Printf("Rendering the template has failed: %v", err)
 	}
 }
