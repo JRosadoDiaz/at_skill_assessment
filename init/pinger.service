@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/home/jdiaz/Desktop/at/
-ExecStart=/home/jdiaz/Desktop/at/at_skill_assessment/main -hosts="www.google.com,reddit.com" -port="8000" -interval="5s"
+ExecStart=./cmd/main.go -hosts="www.google.com,reddit.com" -port="8000" -interval="5s"
 Restart=on-failure
 RestartSec=10s
 

@@ -69,12 +69,8 @@ func (pm *PingManager) pingHost(host string) {
 	// Print status whenever ping is recieved
 	pinger.OnRecv = func(pkt *probing.Packet) {
 		fmt.Printf("Recieved ping replay from %s: bytes=%d time=%v ttl=%d\n", pkt.IPAddr, pkt.Nbytes, pkt.Rtt, pkt.TTL)
-	}
-
-	// Records what happens when a ping finishes
-	pinger.OnFinish = func(stats *probing.Statistics) {
 		pm.mu.Lock()
-		pm.Data[host] = stats
+		pm.Data[host] = pinger.Statistics()
 		pm.mu.Unlock()
 	}
 

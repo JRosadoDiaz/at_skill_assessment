@@ -31,8 +31,11 @@ func StartServer(port string, pm *pinger.PingManager) {
 	router := chi.NewRouter() // Returns a new Mux object that implements the Router interface
 	router.Use(middleware.Logger)
 
-	router.Get("/", handleHome)
+	// Serves static files
+	fileServer := http.FileServer(http.Dir("./web/static"))
+	router.Handle("/static/*", http.StripPrefix("/static/", fileServer))
 
+	router.Get("/", handleHome)
 	router.Get("/ws", socketHandler)
 
 	fmt.Printf("Server is now listening at http://localhost:%v \n", port)
@@ -47,6 +50,7 @@ func socketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	go func(conn *websocket.Conn) {
+		log.Printf("Starting data push with interval: %v", pingManager.Interval)
 		ticker := time.NewTicker(pingManager.Interval)
 		defer func() {
 			ticker.Stop()
@@ -55,11 +59,18 @@ func socketHandler(w http.ResponseWriter, r *http.Request) {
 
 		for range ticker.C {
 			metrics := pingManager.GetMetrics()
+
+			if len(metrics) == 0 {
+				log.Println("Metrics map is empty...")
+				continue
+			}
+
 			data, err := json.Marshal(metrics)
 			if err != nil {
 				log.Println("JSON encoding error:", err)
 				continue
 			}
+
 			if err := conn.WriteMessage(websocket.TextMessage, data); err != nil {
 				log.Println("Websocket write error, closing connection:", err)
 				return
