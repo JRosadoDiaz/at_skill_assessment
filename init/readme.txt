@@ -13,8 +13,8 @@ sudo cp pinger.service /etc/systemd/system/pinger.service
 -- Reload systemd to see new service
 sudo systemctl daemon-reload
 
--- Enable the service to start automatically on boot
-sudo systemctl enable pinger.service
+-- Enable/Disable the service to start automatically on boot
+sudo systemctl enable/disable pinger.service
 
 -- Start the service manually
 sudo systemctl start pinger.service

@@ -5,8 +5,8 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/home/jdiaz/Desktop/at/
-ExecStart=./cmd/main.go -hosts="www.google.com,reddit.com" -port="8000" -interval="5s"
+WorkingDirectory=/home/jdiaz/Desktop/at/at_skill_assessment/
+ExecStart=/home/jdiaz/Desktop/at/at_skill_assessment/main -hosts="www.google.com,reddit.com" -port="8000" -interval="5s"
 Restart=on-failure
 RestartSec=10s
 

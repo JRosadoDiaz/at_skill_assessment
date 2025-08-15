@@ -40,10 +40,10 @@ func NewServer(pm *pinger.PingManager) *Server {
 func (s *Server) routes() {
 	s.router.Use(middleware.Logger)
 
-	fileServer := http.FileServer(http.Dir("./web/static"))
+	fileServer := http.FileServer(http.Dir("web/static"))
 	s.router.Handle("/static/*", http.StripPrefix("/static/", fileServer))
 
-	templateServer := http.FileServer(http.Dir("./web/templates"))
+	templateServer := http.FileServer(http.Dir("web/templates"))
 	s.router.Handle("/templates/*", http.StripPrefix("/templates/", templateServer))
 
 	s.router.Get("/", s.handleHome)
