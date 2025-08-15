@@ -6,8 +6,6 @@ It should contain the main function, where you'll parse command-line flags, set 
 This file should be kept as clean as possible, primarily acting as a coordinator.
 */
 
-// go run AT_Skill_Assessment/cmd/main.go www.google.com,www.reddit.com world 3
-
 import (
 	"flag" // Parses command line arguments
 	"fmt"
@@ -40,9 +38,10 @@ func main() {
 	hosts := strings.Split(hostsStr, ",")
 
 	// Generate ping manager
-	var pingStruct = pinger.NewPingerManager(hosts, interval, count)
-	pingStruct.StartPinging()
+	pingManager := pinger.NewPingerManager(hosts, interval, count)
+	pingManager.StartPinging()
 
 	// Start web server
-	web.StartServer(port, pingStruct)
+	server := web.NewServer(pingManager)
+	server.Start(port)
 }

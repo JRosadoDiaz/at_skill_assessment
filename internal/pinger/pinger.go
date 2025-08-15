@@ -7,7 +7,7 @@ Placing this in an internal directory signals that it's meant for use only by th
 */
 
 import (
-	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -53,7 +53,7 @@ func (pm *PingManager) GetMetrics() map[string]*probing.Statistics {
 func (pm *PingManager) pingHost(host string) {
 	pinger, err := probing.NewPinger(host)
 	if err != nil {
-		panic(err)
+		log.Printf("ERROR: Failed to create pinger for host %s: %v", host, err)
 	}
 
 	// Configure what the pinger can do when active
@@ -63,18 +63,18 @@ func (pm *PingManager) pingHost(host string) {
 
 	// Print which host is being pinged
 	pinger.OnSend = func(p *probing.Packet) {
-		fmt.Printf("Sending packet to %v...\n", host)
+		log.Printf("Sending packet to %v...\n", host)
 	}
 
 	// Print status whenever ping is recieved
 	pinger.OnRecv = func(pkt *probing.Packet) {
-		fmt.Printf("Recieved ping replay from %s: bytes=%d time=%v ttl=%d\n", pkt.IPAddr, pkt.Nbytes, pkt.Rtt, pkt.TTL)
+		log.Printf("Recieved ping replay from %s: bytes=%d time=%v ttl=%d\n", pkt.IPAddr, pkt.Nbytes, pkt.Rtt, pkt.TTL)
 		pm.mu.Lock()
 		pm.Data[host] = pinger.Statistics()
 		pm.mu.Unlock()
 	}
 
-	fmt.Printf("Pinging %s with an interval of %v\n", host, pm.Interval)
+	log.Printf("Pinging %s with an interval of %v\n", host, pm.Interval)
 	err = pinger.Run()
 	if err != nil {
 		panic(err)

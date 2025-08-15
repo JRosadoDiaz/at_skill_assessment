@@ -15,34 +15,47 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var pingManager *pinger.PingManager
+type Server struct {
+	pinger *pinger.PingManager
+	router *chi.Mux
+}
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
-		return true
+		return r.Header.Get("Origin") == "http://"+r.Host
 	},
 }
 
-func StartServer(port string, pm *pinger.PingManager) {
-	pingManager = pm
-
-	router := chi.NewRouter() // Returns a new Mux object that implements the Router interface
-	router.Use(middleware.Logger)
-
-	// Serves static files
-	fileServer := http.FileServer(http.Dir("./web/static"))
-	router.Handle("/static/*", http.StripPrefix("/static/", fileServer))
-
-	router.Get("/", handleHome)
-	router.Get("/ws", socketHandler)
-
-	fmt.Printf("Server is now listening at http://localhost:%v \n", port)
-	log.Fatal(http.ListenAndServe(":"+port, router))
+func NewServer(pm *pinger.PingManager) *Server {
+	s := &Server{
+		pinger: pm,
+		router: chi.NewRouter(),
+	}
+	s.routes()
+	return s
 }
 
-func socketHandler(w http.ResponseWriter, r *http.Request) {
+func (s *Server) routes() {
+	s.router.Use(middleware.Logger)
+
+	fileServer := http.FileServer(http.Dir("./web/static"))
+	s.router.Handle("/static/*", http.StripPrefix("/static/", fileServer))
+
+	templateServer := http.FileServer(http.Dir("./web/templates"))
+	s.router.Handle("/templates/*", http.StripPrefix("/templates/", templateServer))
+
+	s.router.Get("/", s.handleHome)
+	s.router.Get("/ws", s.socketHandler)
+}
+
+func (s *Server) Start(port string) {
+	fmt.Printf("Server is now listening at http://localhost:%v \n", port)
+	log.Fatal(http.ListenAndServe(":"+port, s.router))
+}
+
+func (s *Server) socketHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Websocket connection recieved")
 	conn, err := upgrader.Upgrade(w, r, nil) // Upgrades http request to a websocket for back and forth communication
 	if err != nil {
@@ -50,15 +63,15 @@ func socketHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	go func(conn *websocket.Conn) {
-		log.Printf("Starting data push with interval: %v", pingManager.Interval)
-		ticker := time.NewTicker(pingManager.Interval)
+		log.Printf("Starting data push with interval: %v", s.pinger.Interval)
+		ticker := time.NewTicker(s.pinger.Interval)
 		defer func() {
 			ticker.Stop()
 			conn.Close()
 		}()
 
 		for range ticker.C {
-			metrics := pingManager.GetMetrics()
+			metrics := s.pinger.GetMetrics()
 
 			if len(metrics) == 0 {
 				log.Println("Metrics map is empty...")
@@ -79,8 +92,8 @@ func socketHandler(w http.ResponseWriter, r *http.Request) {
 	}(conn)
 }
 
-func handleHome(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := template.ParseFiles("./web/templates/index.html")
+func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
+	tmpl, err := template.ParseFiles("./web/static/index.html")
 	if err != nil {
 		api.InternalErrorHandler(w)
 		log.Printf("Error loading template: %v", err)
