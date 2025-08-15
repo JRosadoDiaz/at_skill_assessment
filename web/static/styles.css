@@ -107,3 +107,8 @@ h1 {
 .value {
     font-weight: bold;
 }
+
+#bar-chart {
+    min-width: 520px;
+    margin: 0% 10%;
+}

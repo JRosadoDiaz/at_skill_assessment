@@ -42,6 +42,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         hostsContainer.innerHTML = ''; // Clears old data
+        var barOptions = {
+                chart: {
+                    type: 'bar',
+                    height: 350
+                },
+                plotOptions: {
+                    bar: {
+                        borderRadius: 4,
+                        borderRadiusApplication: 'end',
+                        horizontal: true
+                    }
+                },
+                series: [{
+                    data: Array.from(hostLatencyMap.values(), (arr) => (parseInt(arr[arr.length - 1]) / 100000))
+                }],
+                xaxis: {
+                    categories: [...hostLatencyMap.keys()]
+                }
+            }
+
+        var barChart = new ApexCharts(document.querySelector("#bar-chart"), barOptions);
+        barChart.render();
 
         for (const host in metrics) {
             const stats = metrics[host];
@@ -63,9 +85,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 .replaceAll('{{packetLoss}}', stats.PacketLoss.toFixed(1))
                 .replaceAll('{{avgLatency}}', stats.AvgRtt.toFixed(2))
                 .replaceAll('{{minLatency}}', stats.MinRtt.toFixed(2))
-                .replaceAll('{{maxLatency}}', stats.MaxRtt.toFixed(2));
+                .replaceAll('{{maxLatency}}', stats.MaxRtt.toFixed(2))
+                .replaceAll('id="line-chart-{{hostName}}"', `id="line-chart-${host.replaceAll('.', '-')}"`);
 
-            var options = {
+            var lineChartOptions = {
                 chart: {
                     type: 'line'
                 },
@@ -87,12 +110,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             };
-            var chart = new ApexCharts(document.querySelector("#line-chart"), options);
 
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = renderedHtml;
-            hostsContainer.appendChild(tempDiv.firstElementChild);
-            chart.render();
+            const hostBoxElement = tempDiv.firstElementChild;
+            hostsContainer.appendChild(hostBoxElement);
+
+            var lineChart = new ApexCharts(document.querySelector(`#line-chart-${host.replaceAll('.', '-')}`), lineChartOptions);
+            lineChart.render();
         }
     }
 })
