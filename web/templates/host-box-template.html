@@ -1,0 +1,31 @@
+<div class="host-box">
+    <div class="host-header">
+        <h2 class="host-name">{{host}}</h2>
+        <div class="status">
+            <span class="status-indicator"></span>
+            <span class="status-text">{{statusText}}</span>
+        </div>
+    </div>
+    <div class="stats-grid">
+        <div class="stat-item">
+            <span class="label">Packets Sent/Recv:</span>
+            <span class="value packets-sent-recv">{{packetsSent}} / {{packetsRecv}}</span>
+        </div>
+        <div class="stat-item">
+            <span class="label">Packet Loss:</span>
+            <span class="value packet-loss">{{packetLoss}}%</span>
+        </div>
+        <div class="stat-item">
+            <span class="label">Avg Latency:</span>
+            <span class="value avg-latency">{{avgLatency}}</span>
+        </div>
+        <div class="stat-item">
+            <span class="label">Min Latency (ms):</span>
+            <span class="value packet-loss">{{minLatency}}</span>
+        </div>
+        <div class="stat-item">
+            <span class="label">Max Latency (ms):</span>
+            <span class="value avg-latency">{{maxLatency}}</span>
+        </div>
+    </div>
+</div>

@@ -1,12 +1,18 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const hostsContainer = document.getElementById('hosts-container');
     const socket = new WebSocket('ws://' + window.location.host + "/ws");
+
+    const hostsContainer = document.getElementById('hosts-container');
     let hostBoxTemplate = '';
 
-    fetch('/static/host-box-template.html')
-        .then(response => response.text())
+    fetch('/templates/host-box-template.html')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.text();
+        })
         .then(template => {
-            hostBoxTemplate = template
+            hostBoxTemplate = template;
         })
         .catch(error => console.error('Error loading template:', error));
 
@@ -29,29 +35,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function updateDashboard(metrics) {
+        if (!hostBoxTemplate) {
+            console.warn('Template not loaded yet, skipping render.');
+            return;
+        }
+
         hostsContainer.innerHTML = ''; // Clears old data
 
         for (const host in metrics) {
             const stats = metrics[host];
-            let statusColor = 'green';
-            let statusText = 'Online'
 
-            if (stats.PacketLoss > 0) {
-                statusColor = 'red';
-                statusText = 'Offline';
-            }
+            const isOffline = stats.PacketsRecv === 0 && stats.PacketsSent > 0;
+            const statusClass = isOffline ? 'offline' : 'online';
+            const statusText = isOffline ? 'Offline' : 'Online';
 
-            // Create a new div for the host's stats
-            let renderedHtml = hostBoxTemplate
-                .replace('{{host}}', host)
-                .replace('{{statusColor}}', statusColor)
-                .replace('{{statusText}}', statusText)
-                .replace('{{packetsSent}}', stats.PacketsSent)
-                .replace('{{packetsRecv}}', stats.PacketsRecv)
-                .replace('{{packetLoss}}', stats.PacketLoss.toFixed(1))
-                .replace('{{avgLatency}}', stats.AvgRtt.toFixed(2))
-                .replace('{{minLatency}}', stats.MinRtt.toFixed(2))
-                .replace('{{maxLatency}}', stats.MaxRtt.toFixed(2));
+            const renderedHtml = hostBoxTemplate
+                .replaceAll('{{host}}', host)
+                .replaceAll('{{statusClass}}', statusClass)
+                .replaceAll('{{statusText}}', statusText)
+                .replaceAll('{{packetsSent}}', stats.PacketsSent)
+                .replaceAll('{{packetsRecv}}', stats.PacketsRecv)
+                .replaceAll('{{packetLoss}}', stats.PacketLoss.toFixed(1))
+                .replaceAll('{{avgLatency}}', stats.AvgRtt.toFixed(2))
+                .replaceAll('{{minLatency}}', stats.MinRtt.toFixed(2))
+                .replaceAll('{{maxLatency}}', stats.MaxRtt.toFixed(2));
 
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = renderedHtml;
