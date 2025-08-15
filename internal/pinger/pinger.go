@@ -7,8 +7,7 @@ Placing this in an internal directory signals that it's meant for use only by th
 */
 
 import (
-	"fmt"
-	"net/http"
+	"log"
 	"sync"
 	"time"
 
@@ -21,13 +20,15 @@ type PingManager struct {
 	Hosts    []string
 	Data     map[string]*probing.Statistics
 	Interval time.Duration
+	Count    int
 }
 
-func NewPingerManager(hosts []string, interval time.Duration) *PingManager {
+func NewPingerManager(hosts []string, interval time.Duration, count int) *PingManager { // Constructor for PingManager
 	return &PingManager{
 		Hosts:    hosts,
 		Data:     make(map[string]*probing.Statistics),
 		Interval: interval,
+		Count:    count,
 	}
 }
 
@@ -37,7 +38,7 @@ func (pm *PingManager) StartPinging() {
 	}
 }
 
-func (pm *PingManager) GetMetrics(w http.ResponseWriter, r *http.Request) map[string]*probing.Statistics {
+func (pm *PingManager) GetMetrics() map[string]*probing.Statistics {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
@@ -46,36 +47,36 @@ func (pm *PingManager) GetMetrics(w http.ResponseWriter, r *http.Request) map[st
 		metricsCopy[k] = v
 	}
 
-	// w.Header().Set("Content-Type", "application/json")
-	// err = json.NewDecoder(w).Encode(response)
-	// if err != nil {
-	// 	api.InternalErrorHandler(w)
-	// 	return
-	// }
 	return metricsCopy
 }
 
 func (pm *PingManager) pingHost(host string) {
 	pinger, err := probing.NewPinger(host)
 	if err != nil {
-		fmt.Printf("Error creating pinger for %s: %v\n", host, err)
-		return
+		log.Printf("ERROR: Failed to create pinger for host %s: %v", host, err)
 	}
 
-	fmt.Println("Starting pinger")
-
-	// Configure what the pinger will do
+	// Configure what the pinger can do when active
 	pinger.Interval = pm.Interval
-	pinger.Timeout = time.Second * 1
-	pinger.Count = 3
+	pinger.Count = pm.Count
+	pinger.SetPrivileged(true)
 
-	// Records what happens when it finishes a ping
-	pinger.OnFinish = func(stats *probing.Statistics) {
+	// Print which host is being pinged
+	pinger.OnSend = func(p *probing.Packet) {
+		log.Printf("Sending packet to %v...\n", host)
+	}
+
+	// Print status whenever ping is recieved
+	pinger.OnRecv = func(pkt *probing.Packet) {
+		log.Printf("Recieved ping replay from %s: bytes=%d time=%v ttl=%d\n", pkt.IPAddr, pkt.Nbytes, pkt.Rtt, pkt.TTL)
 		pm.mu.Lock()
-		pm.Data[host] = stats
+		pm.Data[host] = pinger.Statistics()
 		pm.mu.Unlock()
 	}
 
-	fmt.Printf("Pinging %s with an interval of %v\n", host, pm.Interval)
-	pinger.Run()
+	log.Printf("Pinging %s with an interval of %v\n", host, pm.Interval)
+	err = pinger.Run()
+	if err != nil {
+		panic(err)
+	}
 }

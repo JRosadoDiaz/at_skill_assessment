@@ -6,8 +6,6 @@ It should contain the main function, where you'll parse command-line flags, set 
 This file should be kept as clean as possible, primarily acting as a coordinator.
 */
 
-// go run AT_Skill_Assessment/cmd/main.go www.google.com,www.reddit.com world 3
-
 import (
 	"flag" // Parses command line arguments
 	"fmt"
@@ -26,10 +24,10 @@ var count int
 
 func main() {
 	// Grabbing flags
-	flag.StringVar(&hostsStr, "hosts", "", "comma-seperated list of hosts to ping")
-	flag.StringVar(&port, "port", "8000", "Port number")
+	flag.StringVar(&hostsStr, "hosts", "www.google.com,reddit.com", "comma-seperated list of hosts to ping")
+	flag.StringVar(&port, "port", "8000", "Port number for web server")
 	flag.DurationVar(&interval, "interval", time.Second*5, "The interval between pings")
-	flag.IntVar(&count, "count", 5, "Number of times the host will be pinged")
+	flag.IntVar(&count, "count", 0, "Number of times the host will be pinged, 0 is ping indefinitely")
 	flag.Parse()
 
 	if hostsStr == "" {
@@ -40,12 +38,10 @@ func main() {
 	hosts := strings.Split(hostsStr, ",")
 
 	// Generate ping manager
-	var pingStruct = pinger.NewPingerManager(hosts, interval)
+	pingManager := pinger.NewPingerManager(hosts, interval, count)
+	pingManager.StartPinging()
 
 	// Start web server
-	web.StartServer(port, pingStruct)
-
-	fmt.Println("Starting pinger")
-	pingStruct.StartPinging()
-	select {} // Will keep the project running indefinitely
+	server := web.NewServer(pingManager)
+	server.Start(port)
 }
