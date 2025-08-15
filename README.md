@@ -16,10 +16,7 @@ Go to the project directory
 ```bash
   cd at_skill_assessment
 ```
-
-
-Once running, a webserver will run at the specified port or on `http://localhost:8000` by default. There are two alternative methods to run the project:
-
+Once running, a webserver will run at the specified port or on `http://localhost:8000` by default. There are three alternative methods to run the project:
 ### Run locally through command line
 This project utilizes priviledged pings and therefore requires advanced priviledges to opperate correctly. For this reason, this project may not work on Windows opperating systems unless priviledges are elevated and firewalls disabled.
 this project includes 4 command line flags, all with their own default values: 
@@ -33,6 +30,15 @@ this project includes 4 command line flags, all with their own default values:
 `count`: Number of times the host will be pinged, 0 is ping indefinitely
 ```bash
   sudo go run ./cmd/main.go -hosts="www.google.com,www.reddit.com" -port="8000" -interval=5 -count=0
+```
+### Run locally through makefile
+Build the Go application
+```bash
+  make build
+```
+Run the application
+```bash
+  make run
 ```
 
 ### Running as a daemon
