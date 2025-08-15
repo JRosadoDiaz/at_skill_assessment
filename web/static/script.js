@@ -3,18 +3,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const socket = new WebSocket('ws://' + window.location.host + "/ws");
     let hostBoxTemplate = '';
 
-    // const TIMEOUT_DURATION = 5000;
-    // let timeoutID;
-
-    // function resetTimeout() {
-    //     clearTimeout(timeoutID);
-    //     timeoutID = setTimeout(handleTimeout, TIMEOUT_DURATION)
-    // }
-
-    // function handleTimeout() {
-    //     console.error('Websocket timeout; No data received for', TIMEOUT_DURATION, 'ms');
-    // }
-
     fetch('/static/host-box-template.html')
         .then(response => response.text())
         .then(template => {
@@ -24,11 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     socket.onopen = () => {
         console.log('Websocket connection established');
-        // resetTimeout();
     };
 
     socket.onmessage = (event) => {
-        // resetTimeout();
         try {
             const data = JSON.parse(event.data)
             console.log('Recieved data:', data)
@@ -40,26 +26,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     socket.onclose = () => {
         console.log('Websocket connection closed');
-        // handleTimeout();
     }
 
     function updateDashboard(metrics) {
         hostsContainer.innerHTML = ''; // Clears old data
 
         for (const host in metrics) {
-            const hostMetrics = metrics[host];
-            const stats = hostMetrics.Stats;
-            const recentLoss = hostMetrics.RecentLoss;
-
+            const stats = metrics[host];
             let statusColor = 'green';
             let statusText = 'Online'
 
-            if (recentLoss === 100) {
+            if (stats.PacketLoss > 0) {
                 statusColor = 'red';
-                statusText = 'Timeout/Offline';
-            } else if (recentLoss > 0) {
-                statusColor = 'orange';
-                statusText = 'Packet Loss';
+                statusText = 'Offline';
             }
 
             // Create a new div for the host's stats
@@ -77,7 +56,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = renderedHtml;
             hostsContainer.appendChild(tempDiv.firstElementChild);
-            oldPacketLossDif = dif;
         }
     }
 })
