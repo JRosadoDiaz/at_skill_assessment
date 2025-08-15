@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const socket = new WebSocket('ws://' + window.location.host + "/ws");
+    const hostLatencyMap = new Map();
 
     const hostsContainer = document.getElementById('hosts-container');
     let hostBoxTemplate = '';
@@ -44,6 +45,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         for (const host in metrics) {
             const stats = metrics[host];
+            if (!hostLatencyMap.has(host)) {
+                hostLatencyMap.set(host,[])
+            }
+            hostLatencyMap.get(host).push([stats.AvgRtt, stats.MinRtt, stats.MaxRtt])
 
             const isOffline = stats.PacketsRecv === 0 && stats.PacketsSent > 0;
             const statusClass = isOffline ? 'offline' : 'online';
@@ -60,9 +65,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 .replaceAll('{{minLatency}}', stats.MinRtt.toFixed(2))
                 .replaceAll('{{maxLatency}}', stats.MaxRtt.toFixed(2));
 
+            var options = {
+                chart: {
+                    type: 'line'
+                },
+                series: [{
+                    name: "Average Latency",
+                    data: hostLatencyMap.get(host).map(x => x[0])
+                },
+                {
+                    name: "Min Latency",
+                    data: hostLatencyMap.get(host).map(x => x[1])
+                },
+                {
+                    name: "Max Latency",
+                    data: hostLatencyMap.get(host).map(x => x[2])
+                }],
+                xaxis: {
+                    labels: {
+                        show: false
+                    }
+                }
+            };
+            var chart = new ApexCharts(document.querySelector("#line-chart"), options);
+
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = renderedHtml;
             hostsContainer.appendChild(tempDiv.firstElementChild);
+            chart.render();
         }
     }
 })
