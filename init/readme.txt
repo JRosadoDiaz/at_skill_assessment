@@ -1,4 +1,5 @@
-This is the developer systemd unit file
+This is the developer systemd unit file.
+This allows the project to be run as a background service under Linux machines.
 
 ** INSTALLATION **
 When ready to deploy as a service, copy file into the following linux directory:
